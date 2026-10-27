@@ -1,0 +1,28 @@
+{
+  "name": "kingdomino-ai",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev": "npm run dev --workspace @kingdomino/web",
+    "build": "npm run build --workspace @kingdomino/web",
+    "lint": "npm run lint --workspace @kingdomino/web",
+    "dev:host": "npm run dev --workspace @kingdomino/web -- --host 0.0.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/louis-stintzy/kingdomino-ai.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/louis-stintzy/kingdomino-ai/issues"
+  },
+  "homepage": "https://github.com/louis-stintzy/kingdomino-ai#readme",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
