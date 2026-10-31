@@ -6,7 +6,9 @@
     "dev": "npm run dev --workspace @kingdomino/web",
     "build": "npm run build --workspace @kingdomino/web",
     "lint": "npm run lint --workspace @kingdomino/web",
-    "dev:host": "npm run dev --workspace @kingdomino/web -- --host 0.0.0.0"
+    "dev:host": "npm run dev --workspace @kingdomino/web -- --host 0.0.0.0",
+    "test": "npm run test --workspace @kingdomino/game-data",
+    "typecheck": "npm run typecheck --workspaces --if-present"
   },
   "repository": {
     "type": "git",
