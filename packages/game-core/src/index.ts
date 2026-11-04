@@ -33,5 +33,6 @@ export {
 export type {
   Direction,
   DominoPlacement,
+  PlacementErrorCode,
   PlacementValidation,
 } from "./domain/placement.js";

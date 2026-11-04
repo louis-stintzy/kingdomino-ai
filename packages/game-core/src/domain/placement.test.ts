@@ -46,6 +46,34 @@ function kingdomWithCell(
   };
 }
 
+function placementKey({ anchor, direction }: DominoPlacement): string {
+  return `${anchor.x},${anchor.y},${direction}`;
+}
+
+function exhaustivePlacements(
+  kingdom: Kingdom,
+  domino: DominoDefinition,
+  kingdomSize: number,
+  searchRadius: number,
+): DominoPlacement[] {
+  const placements: DominoPlacement[] = [];
+
+  for (let y = -searchRadius; y <= searchRadius; y += 1) {
+    for (let x = -searchRadius; x <= searchRadius; x += 1) {
+      for (const direction of DIRECTIONS) {
+        const placement = { anchor: { x, y }, direction };
+        if (
+          validateDominoPlacement(kingdom, domino, placement, kingdomSize).valid
+        ) {
+          placements.push(placement);
+        }
+      }
+    }
+  }
+
+  return placements;
+}
+
 describe("getDominoPositions", () => {
   it.each([
     ["north", { x: 2, y: 2 }, { x: 2, y: 1 }],
@@ -99,8 +127,7 @@ describe("validateDominoPlacement", () => {
       5,
     );
 
-    expect(validation.valid).toBe(false);
-    if (!validation.valid) expect(validation.reason).toMatch(/touch/);
+    expect(validation).toEqual({ valid: false, reason: "NO_CONNECTION" });
   });
 
   it("does not count a diagonal contact", () => {
@@ -110,8 +137,8 @@ describe("validateDominoPlacement", () => {
         forestDomino,
         { anchor: { x: 2, y: 0 }, direction: "east" },
         5,
-      ).valid,
-    ).toBe(false);
+      ),
+    ).toEqual({ valid: false, reason: "NO_CONNECTION" });
   });
 
   it("rejects overlap with an existing terrain", () => {
@@ -122,8 +149,7 @@ describe("validateDominoPlacement", () => {
       5,
     );
 
-    expect(validation.valid).toBe(false);
-    if (!validation.valid) expect(validation.reason).toMatch(/unoccupied/);
+    expect(validation).toEqual({ valid: false, reason: "OCCUPIED" });
   });
 
   it("rejects overlap with the castle", () => {
@@ -134,8 +160,7 @@ describe("validateDominoPlacement", () => {
       5,
     );
 
-    expect(validation.valid).toBe(false);
-    if (!validation.valid) expect(validation.reason).toMatch(/castle/);
+    expect(validation).toEqual({ valid: false, reason: "OCCUPIED" });
   });
 
   it("rejects horizontal and vertical kingdom overflow", () => {
@@ -164,16 +189,16 @@ describe("validateDominoPlacement", () => {
         forestDomino,
         { anchor: { x: -1, y: 0 }, direction: "west" },
         3,
-      ).valid,
-    ).toBe(false);
+      ),
+    ).toEqual({ valid: false, reason: "OUT_OF_BOUNDS" });
     expect(
       validateDominoPlacement(
         vertical,
         forestDomino,
         { anchor: { x: 0, y: -1 }, direction: "north" },
         3,
-      ).valid,
-    ).toBe(false);
+      ),
+    ).toEqual({ valid: false, reason: "OUT_OF_BOUNDS" });
   });
 
   it("handles a castle away from the center of the kingdom bounds", () => {
@@ -244,19 +269,38 @@ describe("validateDominoPlacement", () => {
         mixedDomino,
         { anchor: { x: 1.2, y: 0 }, direction: "east" },
         5,
-      ).valid,
-    ).toBe(false);
+      ),
+    ).toEqual({ valid: false, reason: "INVALID_POSITION" });
 
     for (const size of [0, -1, 2.5, Number.NaN]) {
-      const validation = validateDominoPlacement(
+      expect(
+        validateDominoPlacement(
+          createKingdom(),
+          mixedDomino,
+          { anchor: { x: 1, y: 0 }, direction: "east" },
+          size,
+        ),
+      ).toEqual({
+        valid: false,
+        reason: "INVALID_KINGDOM_SIZE",
+      });
+    }
+  });
+
+  it("rejects an invalid direction with a typed code", () => {
+    const placement = {
+      anchor: { x: 1, y: 0 },
+      direction: "up",
+    } as unknown as DominoPlacement;
+
+    expect(
+      validateDominoPlacement(
         createKingdom(),
         mixedDomino,
-        { anchor: { x: 1, y: 0 }, direction: "east" },
-        size,
-      );
-      expect(validation.valid).toBe(false);
-      if (!validation.valid) expect(validation.reason).toMatch(/positive integer/);
-    }
+        placement,
+        5,
+      ),
+    ).toEqual({ valid: false, reason: "INVALID_DIRECTION" });
   });
 });
 
@@ -293,7 +337,9 @@ describe("placeDomino", () => {
         { anchor: { x: 2, y: 2 }, direction: "east" },
         5,
       ),
-    ).toThrow(/Illegal domino placement.*touch/);
+    ).toThrow(
+      /Illegal domino placement \(NO_CONNECTION\).*touch the castle/,
+    );
   });
 });
 
@@ -302,9 +348,7 @@ describe("getLegalPlacements", () => {
     const kingdom = createKingdom();
     const placements = getLegalPlacements(kingdom, mixedDomino, 5);
     const secondCall = getLegalPlacements(kingdom, mixedDomino, 5);
-    const keys = placements.map(
-      ({ anchor, direction }) => `${anchor.x},${anchor.y},${direction}`,
-    );
+    const keys = placements.map(placementKey);
 
     expect(secondCall).toEqual(placements);
     expect(new Set(keys).size).toBe(placements.length);
@@ -315,20 +359,40 @@ describe("getLegalPlacements", () => {
       ),
     ).toBe(true);
 
-    const exhaustive: DominoPlacement[] = [];
-    for (let y = -5; y <= 5; y += 1) {
-      for (let x = -5; x <= 5; x += 1) {
-        for (const direction of DIRECTIONS) {
-          const placement = { anchor: { x, y }, direction };
-          if (
-            validateDominoPlacement(kingdom, mixedDomino, placement, 5).valid
-          ) {
-            exhaustive.push(placement);
-          }
-        }
-      }
-    }
+    const exhaustive = exhaustivePlacements(kingdom, mixedDomino, 5, 5);
     expect(placements).toEqual(exhaustive);
+  });
+
+  it("is exhaustive on a partial multi-terrain kingdom with an off-center castle", () => {
+    const kingdom: Kingdom = {
+      castle: { x: 0, y: 0 },
+      cells: [
+        {
+          position: { x: 1, y: 0 },
+          cell: { terrain: "wheat", crowns: 0, dominoId: "1" },
+        },
+        {
+          position: { x: 2, y: 0 },
+          cell: { terrain: "forest", crowns: 1, dominoId: "1" },
+        },
+        {
+          position: { x: 2, y: 1 },
+          cell: { terrain: "lake", crowns: 0, dominoId: "2" },
+        },
+        {
+          position: { x: 1, y: 1 },
+          cell: { terrain: "grass", crowns: 0, dominoId: "2" },
+        },
+      ],
+    };
+    const placements = getLegalPlacements(kingdom, mixedDomino, 5);
+    const exhaustive = exhaustivePlacements(kingdom, mixedDomino, 5, 10);
+    const keys = placements.map(placementKey);
+
+    expect(placements.length).toBeGreaterThan(0);
+    expect(placements).toEqual(exhaustive);
+    expect(getLegalPlacements(kingdom, mixedDomino, 5)).toEqual(placements);
+    expect(new Set(keys).size).toBe(placements.length);
   });
 
   it("returns no placement when the kingdom size cannot contain a domino", () => {

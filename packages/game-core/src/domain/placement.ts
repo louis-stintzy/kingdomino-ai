@@ -17,9 +17,17 @@ export interface DominoPlacement {
   readonly direction: Direction;
 }
 
+export type PlacementErrorCode =
+  | "INVALID_KINGDOM_SIZE"
+  | "INVALID_POSITION"
+  | "INVALID_DIRECTION"
+  | "OCCUPIED"
+  | "OUT_OF_BOUNDS"
+  | "NO_CONNECTION";
+
 export type PlacementValidation =
   | { readonly valid: true }
-  | { readonly valid: false; readonly reason: string };
+  | { readonly valid: false; readonly reason: PlacementErrorCode };
 
 const DIRECTION_OFFSETS: Readonly<Record<Direction, Position>> = {
   north: { x: 0, y: -1 },
@@ -32,11 +40,21 @@ const ORTHOGONAL_OFFSETS: readonly Position[] = Object.values(
   DIRECTION_OFFSETS,
 );
 
+const PLACEMENT_ERROR_MESSAGES: Readonly<Record<PlacementErrorCode, string>> = {
+  INVALID_KINGDOM_SIZE: "Kingdom size must be a positive integer.",
+  INVALID_POSITION: "Domino anchor coordinates must be integers.",
+  INVALID_DIRECTION: "Domino direction must be north, east, south, or west.",
+  OCCUPIED: "Both domino positions must be unoccupied, including the castle.",
+  OUT_OF_BOUNDS: "Placement exceeds the maximum kingdom bounds.",
+  NO_CONNECTION:
+    "The domino must touch the castle or an orthogonally adjacent matching terrain.",
+};
+
 function isDirection(value: string): value is Direction {
   return DIRECTIONS.some((direction) => direction === value);
 }
 
-function invalid(reason: string): PlacementValidation {
+function invalid(reason: PlacementErrorCode): PlacementValidation {
   return { valid: false, reason };
 }
 
@@ -116,30 +134,32 @@ export function validateDominoPlacement(
   kingdomSize: number,
 ): PlacementValidation {
   if (!isValidKingdomSize(kingdomSize)) {
-    return invalid("Kingdom size must be a positive integer.");
+    return invalid("INVALID_KINGDOM_SIZE");
   }
 
-  let positions: readonly [Position, Position];
-  try {
-    positions = getDominoPositions(placement);
-  } catch (error) {
-    return invalid(error instanceof Error ? error.message : "Invalid placement.");
+  if (
+    !Number.isInteger(placement.anchor.x) ||
+    !Number.isInteger(placement.anchor.y)
+  ) {
+    return invalid("INVALID_POSITION");
   }
+
+  if (!isDirection(placement.direction)) {
+    return invalid("INVALID_DIRECTION");
+  }
+
+  const positions = getDominoPositions(placement);
 
   if (positions.some((position) => isOccupied(kingdom, position))) {
-    return invalid("Both domino positions must be unoccupied, including the castle.");
+    return invalid("OCCUPIED");
   }
 
   if (!fitsKingdomBounds(kingdom, positions, kingdomSize)) {
-    return invalid(
-      `Placement exceeds the maximum kingdom bounds of ${kingdomSize} by ${kingdomSize}.`,
-    );
+    return invalid("OUT_OF_BOUNDS");
   }
 
   if (!hasValidConnection(kingdom, domino, positions)) {
-    return invalid(
-      "The domino must touch the castle or an orthogonally adjacent matching terrain.",
-    );
+    return invalid("NO_CONNECTION");
   }
 
   return { valid: true };
@@ -159,7 +179,9 @@ export function placeDomino(
   );
 
   if (!validation.valid) {
-    throw new Error(`Illegal domino placement: ${validation.reason}`);
+    throw new Error(
+      `Illegal domino placement (${validation.reason}): ${PLACEMENT_ERROR_MESSAGES[validation.reason]}`,
+    );
   }
 
   const positions = getDominoPositions(placement);
@@ -185,7 +207,7 @@ export function getLegalPlacements(
   kingdomSize: number,
 ): readonly DominoPlacement[] {
   if (!isValidKingdomSize(kingdomSize)) {
-    throw new Error("Kingdom size must be a positive integer.");
+    throw new Error(PLACEMENT_ERROR_MESSAGES.INVALID_KINGDOM_SIZE);
   }
 
   const bounds = getKingdomBounds(kingdom);
