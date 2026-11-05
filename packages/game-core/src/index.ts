@@ -21,3 +21,18 @@ export type {
   PlacedCell,
   KingdomBounds,
 } from "./domain/kingdom.js";
+
+export {
+  DIRECTIONS,
+  getDominoPositions,
+  validateDominoPlacement,
+  placeDomino,
+  getLegalPlacements,
+} from "./domain/placement.js";
+
+export type {
+  Direction,
+  DominoPlacement,
+  PlacementErrorCode,
+  PlacementValidation,
+} from "./domain/placement.js";
