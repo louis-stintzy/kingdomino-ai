@@ -1,121 +1,169 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import {
+  DIRECTIONS,
+  createKingdom,
+  getDominoPositions,
+  getKingdomBounds,
+  getLegalPlacements,
+  placeDomino,
+  validateDominoPlacement,
+  type Direction,
+  type DominoPlacement,
+  type Kingdom,
+  type PlacementValidation,
+  type Position,
+} from '@kingdomino/game-core'
+import { DOMINOS } from '@kingdomino/game-data'
+import { formatPlacementError, positionKey } from './board-utils'
+import { DominoPanel } from './components/DominoPanel'
+import { KingdomBoard } from './components/KingdomBoard'
+import { PlacementInfo } from './components/PlacementInfo'
 import './App.css'
 
+const KINGDOM_SIZE = 7
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [kingdom, setKingdom] = useState<Kingdom>(() => createKingdom())
+  const [selectedDominoId, setSelectedDominoId] = useState<string>(DOMINOS[0].id)
+  const [direction, setDirection] = useState<Direction>('east')
+  const [hoveredPosition, setHoveredPosition] = useState<Position | null>(null)
+  const [showLegalPlacements, setShowLegalPlacements] = useState(false)
+  const [message, setMessage] = useState(
+    'Survolez une case pour prévisualiser le domino, puis cliquez pour le poser.',
+  )
+
+  const selectedDomino =
+    DOMINOS.find(({ id }) => id === selectedDominoId) ?? DOMINOS[0]
+  const placement: DominoPlacement | null = hoveredPosition
+    ? { anchor: hoveredPosition, direction }
+    : null
+  const validation: PlacementValidation | null = placement
+    ? validateDominoPlacement(kingdom, selectedDomino, placement, KINGDOM_SIZE)
+    : null
+  const previewPositions = placement ? getDominoPositions(placement) : null
+  const legalPlacements = getLegalPlacements(
+    kingdom,
+    selectedDomino,
+    KINGDOM_SIZE,
+  )
+  const visibleLegalKeys = new Set(
+    legalPlacements
+      .filter((candidate) => candidate.direction === direction)
+      .map(({ anchor }) => positionKey(anchor)),
+  )
+  const bounds = getKingdomBounds(kingdom)
+
+  function rotate(step: -1 | 1) {
+    const currentIndex = DIRECTIONS.indexOf(direction)
+    const nextIndex =
+      (currentIndex + step + DIRECTIONS.length) % DIRECTIONS.length
+    setDirection(DIRECTIONS[nextIndex])
+  }
+
+  function handlePlacement(anchor: Position) {
+    const candidate = { anchor, direction }
+    const result = validateDominoPlacement(
+      kingdom,
+      selectedDomino,
+      candidate,
+      KINGDOM_SIZE,
+    )
+
+    if (!result.valid) {
+      setMessage(formatPlacementError(result.reason))
+      return
+    }
+
+    setKingdom(placeDomino(kingdom, selectedDomino, candidate, KINGDOM_SIZE))
+    setHoveredPosition(null)
+    setMessage(`Domino ${selectedDomino.id} placé avec succès.`)
+  }
+
+  function resetKingdom() {
+    setKingdom(createKingdom())
+    setHoveredPosition(null)
+    setMessage('Royaume réinitialisé. Le château vous attend à l’origine.')
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <main className="app-shell">
+      <header className="app-header">
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
+          <p className="eyebrow">Kingdomino AI · laboratoire</p>
+          <h1>Atelier du royaume</h1>
+          <p className="intro">
+            Explorez les règles de placement sur un royaume 7 × 7, sans tours,
+            pioche ni unicité des dominos pour le moment.
           </p>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        <div className="header-stats" aria-label="État du royaume">
+          <div>
+            <strong>{kingdom.cells.length + 1}</strong>
+            <span>cases occupées</span>
+          </div>
+          <div>
+            <strong>{bounds.width} × {bounds.height}</strong>
+            <span>dimensions</span>
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <section className="workspace">
+        <div className="board-column">
+          <div className="board-heading">
+            <div>
+              <p className="section-kicker">Viewport −5 à +5</p>
+              <h2>Votre royaume</h2>
+            </div>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={resetKingdom}
+            >
+              Réinitialiser
+            </button>
+          </div>
+
+          <KingdomBoard
+            kingdom={kingdom}
+            domino={selectedDomino}
+            previewPositions={previewPositions}
+            previewValid={validation?.valid ?? null}
+            legalPlacementKeys={
+              showLegalPlacements ? visibleLegalKeys : new Set()
+            }
+            onCellEnter={setHoveredPosition}
+            onCellLeave={() => setHoveredPosition(null)}
+            onCellClick={handlePlacement}
+          />
+
+          <PlacementInfo
+            message={
+              validation && !validation.valid
+                ? formatPlacementError(validation.reason)
+                : message
+            }
+            validation={validation}
+            legalCount={legalPlacements.length}
+            visibleLegalCount={visibleLegalKeys.size}
+            direction={direction}
+            showLegalPlacements={showLegalPlacements}
+            onToggleLegalPlacements={() =>
+              setShowLegalPlacements((shown) => !shown)
+            }
+          />
+        </div>
+
+        <DominoPanel
+          dominos={DOMINOS}
+          selectedDomino={selectedDomino}
+          direction={direction}
+          onSelect={setSelectedDominoId}
+          onRotateLeft={() => rotate(-1)}
+          onRotateRight={() => rotate(1)}
+        />
+      </section>
+    </main>
   )
 }
 
