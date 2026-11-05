@@ -29,6 +29,7 @@ export type PlacementValidation =
   | { readonly valid: true }
   | { readonly valid: false; readonly reason: PlacementErrorCode };
 
+// Ces décalages orientent le domino : ils indiquent où placer sa seconde case par rapport à l'ancre choisie.
 const DIRECTION_OFFSETS: Readonly<Record<Direction, Position>> = {
   north: { x: 0, y: -1 },
   east: { x: 1, y: 0 },
@@ -36,9 +37,9 @@ const DIRECTION_OFFSETS: Readonly<Record<Direction, Position>> = {
   west: { x: -1, y: 0 },
 };
 
-const ORTHOGONAL_OFFSETS: readonly Position[] = Object.values(
-  DIRECTION_OFFSETS,
-);
+// Les mêmes quatre décalages servent ici à inspecter tous les voisins orthogonaux d'une case, indépendamment de l'orientation du domino.
+const ORTHOGONAL_OFFSETS: readonly Position[] =
+  Object.values(DIRECTION_OFFSETS);
 
 const PLACEMENT_ERROR_MESSAGES: Readonly<Record<PlacementErrorCode, string>> = {
   INVALID_KINGDOM_SIZE: "Kingdom size must be a positive integer.",
@@ -62,6 +63,10 @@ function isValidKingdomSize(kingdomSize: number): boolean {
   return Number.isInteger(kingdomSize) && kingdomSize > 0;
 }
 
+/**
+ * Calcule les deux coordonnées occupées par un domino à partir de son ancrage et de sa direction.
+ * La première case reste sur l'ancre et la seconde suit l'orientation.
+ */
 export function getDominoPositions(
   placement: DominoPlacement,
 ): readonly [Position, Position] {
@@ -73,7 +78,9 @@ export function getDominoPositions(
   }
 
   if (!isDirection(placement.direction)) {
-    throw new Error(`Invalid domino direction: ${String(placement.direction)}.`);
+    throw new Error(
+      `Invalid domino direction: ${String(placement.direction)}.`,
+    );
   }
 
   const offset = DIRECTION_OFFSETS[placement.direction];
@@ -87,6 +94,10 @@ export function getDominoPositions(
   ];
 }
 
+/**
+ * Calcule le rectangle englobant actuel,
+ * y ajoute les deux nouvelles cases et vérifie les dimensions maximales.
+ */
 function fitsKingdomBounds(
   kingdom: Kingdom,
   positions: readonly [Position, Position],
@@ -102,6 +113,16 @@ function fitsKingdomBounds(
   );
 }
 
+/**
+ * Vérifie la règle de connexion de Kingdomino.
+ *
+ * Au moins une moitié du domino doit toucher orthogonalement :
+ * - le château (tous les terrains sont acceptés) ;
+ * - ou une case existante possédant le même terrain.
+ *
+ * Une seule connexion valide suffit, même si d'autres voisins
+ * ont des terrains différents. Les diagonales ne comptent pas.
+ */
 function hasValidConnection(
   kingdom: Kingdom,
   domino: DominoDefinition,
@@ -114,19 +135,21 @@ function hasValidConnection(
         y: position.y + offset.y,
       };
 
-      if (
-        neighbor.x === kingdom.castle.x &&
-        neighbor.y === kingdom.castle.y
-      ) {
+      if (neighbor.x === kingdom.castle.x && neighbor.y === kingdom.castle.y) {
         return true;
       }
 
-      return getCellAt(kingdom, neighbor)?.cell.terrain ===
-        domino.tiles[tileIndex].terrain;
+      return (
+        getCellAt(kingdom, neighbor)?.cell.terrain ===
+        domino.tiles[tileIndex].terrain
+      );
     }),
   );
 }
 
+/**
+ * Coordonne les validations et renvoie un succès ou un code d'erreur.
+ */
 export function validateDominoPlacement(
   kingdom: Kingdom,
   domino: DominoDefinition,
@@ -165,6 +188,13 @@ export function validateDominoPlacement(
   return { valid: true };
 }
 
+/**
+ * Pose un domino après validation et renvoie le nouveau royaume.
+ *
+ * Le royaume initial et son tableau de cases ne sont jamais modifiés. Un
+ * placement illégal produit une erreur JavaScript explicite contenant à la
+ * fois le code métier et son message lisible.
+ */
 export function placeDomino(
   kingdom: Kingdom,
   domino: DominoDefinition,
@@ -201,6 +231,18 @@ export function placeDomino(
   };
 }
 
+/**
+ * Retourne tous les placements légaux d'un domino.
+ *
+ * Explore les ancrages autour du royaume et les quatre directions.
+ * La marge de deux cases permet de couvrir les placements dont
+ * la seconde moitié est adjacente à une case existante.
+ *
+ * Chaque candidat est vérifié avec validateDominoPlacement().
+ *
+ * Le résultat est déterministe, sans doublon (ancre, direction).
+ * Les placements équivalents géométriquement restent possibles.
+ */
 export function getLegalPlacements(
   kingdom: Kingdom,
   domino: DominoDefinition,
