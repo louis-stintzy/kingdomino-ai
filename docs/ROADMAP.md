@@ -1,6 +1,6 @@
 # Kingdomino AI — Roadmap
 
-> Document vivant du projet. Dernière mise à jour : 2026-11-05.
+> Document vivant du projet. Dernière mise à jour : 2026-11-06.
 >
 > **Source de vérité :** les lots indiqués comme terminés correspondent aux PR fusionnées dans `main`. Les lots à venir sont des intentions, susceptibles de changer. L'activité de réflexion et de planification peut exister sans commit.
 
@@ -34,8 +34,8 @@ Créer une adaptation web 2D de Kingdomino, avec moteur de règles réutilisable
 | 1A — Modèles et catalogue | ✅ Terminé | Terrains, dominos, 60 définitions et tests | PR [#2](https://github.com/louis-stintzy/kingdomino-ai/pull/2) |
 | 1B — Modèle du royaume | ✅ Terminé | Château à (0,0), cases relatives, bornes et tests | PR [#3](https://github.com/louis-stintzy/kingdomino-ai/pull/3) |
 | 2 — Placement des dominos | ✅ Terminé | Validation, orientations, connexions, énumération des placements légaux, tests | PR [#4](https://github.com/louis-stintzy/kingdomino-ai/pull/4) |
-| 3 — Plateau web interactif | ⏭ Prochain | Visualiser un royaume, choisir et orienter un domino, afficher les coups légaux et le placer via `game-core` |
-| 4 — Déroulement d'une partie | Prévu | Joueurs/pions, pioche seedée, draft, ordre des tours, placement ou défausse, fin de partie |
+| 3 — Plateau web interactif | ✅ Terminé | Bac à sable React : catalogue réel, placement/rotation, aperçus, coups légaux, viewport 13×13, lecture seule, 41 tests validés lors de la PR | PR [#6](https://github.com/louis-stintzy/kingdomino-ai/pull/6) |
+| 4 — Moteur de partie | ⏭ Prochain | État de partie pour deux joueurs / quatre pions, pioche reproductible, deux rangées de draft, transitions, défausse et fin de partie (sans intégration React dans ce lot) |
 | 5 — Scores et partie jouable | Prévu | Régions connectées, couronnes, score final, interface humain vs humain |
 | 6 — Bonus et variantes | Prévu | Modèle des cartes bonus, tirage de deux cartes, évaluation configurable |
 | 7 — Simulateur et IA de référence | Prévu | Parties sans UI, RandomBot, tests de robustesse et reproductibilité |
@@ -48,16 +48,18 @@ Les numéros et l'ordre des lots futurs peuvent changer selon les besoins et les
 
 ## Prochaine action concrète
 
-**Lot 3 — Plateau web interactif** : démarrer une nouvelle branche depuis `main`, remplacer l'écran Vite de démonstration par une aire de jeu sobre, utiliser le vrai catalogue via `game-data` et les fonctions `createKingdom`, `getLegalPlacements`, `validateDominoPlacement` et `placeDomino`. Commencer avec **un seul royaume de démonstration**, sans tours ni pioche. Ajouter des interactions au clic (plus robustes pour une première version que le drag-and-drop), rotation, aperçu des positions légales, messages d'erreur et réinitialisation. Ajouter des tests adaptés.
+**Lot 4 — Moteur de partie** : démarrer `feat/game-flow` depuis `main` ; concevoir dans `game-core` des transitions pures pour deux joueurs, deux pions par joueur et royaumes 7×7. Utiliser les définitions de dominos passées en paramètres depuis `game-data`, sans introduire une dépendance inverse. Prévoir un mélange reproductible (seed), le tirage de cinq dominos, le retrait du troisième après tri, la sélection initiale selon un ordre mélangé des quatre pions, puis les poses dans l'ordre des sélections précédentes avec choix dans la rangée suivante. La dernière manche se termine sans nouvelle sélection. Autoriser la défausse uniquement en l'absence de placement légal. Garder le moteur indépendant du frontend.
 
-**Critères de validation :** aucune règle du jeu dupliquée dans React ; build, lint, typecheck et tests réussis ; contrôle visuel dans le navigateur ; revue de PR.
+**Critères de validation :** invariants de distribution et de draft, transitions immuables et déterministes, tests du déroulement complet (y compris dernier tour et défausse), typecheck, build et lint réussis, revue de PR. L'intégration de la partie à l'interface et l'affichage simultané des deux royaumes viendront dans un sous-lot ultérieur, après stabilisation du moteur.
 
 ## Points à préciser plus tard
 
 - Vérification exhaustive du catalogue des dominos et des règles de tirage retenues.
 - Modèle de partie (`GameState`, actions, RNG seedé, historique/replay et information visible par chaque joueur).
 - Catalogue précis des cartes bonus, conditions d'activation et défausses pour Harmony.
-- Ergonomie du plateau : clic pour la V1, éventuellement drag-and-drop ensuite.
+- Ergonomie du plateau : clic pour la V1, éventuellement drag-and-drop ensuite ; illustrations et symboles des terrains à retravailler.
+- Vue deux royaumes et deux colonnes de quatre dominos (tour actuel et suivant) ; sur mobile, affichage adapté au mode conseil IA.
+- Château et pions avec repères de couleur des joueurs, lorsque le modèle des joueurs sera présent.
 - Choix de structures optimisées pour les simulations IA **après** mesures.
 - Cadre d'utilisation des visuels et des noms du jeu si diffusion publique.
 
