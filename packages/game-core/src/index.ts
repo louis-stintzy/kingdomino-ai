@@ -30,6 +30,34 @@ export {
   getLegalPlacements,
 } from "./domain/placement.js";
 
+export {
+  GAME_KINGDOM_SIZE,
+  GAME_DRAW_COUNT,
+  DOMINOS_PER_DRAW,
+  createGame,
+  getCurrentPawn,
+  getLegalGameActions,
+  applyGameAction,
+  isGameFinished,
+} from "./domain/game.js";
+
+export type {
+  PlayerId,
+  PawnId,
+  GamePlayer,
+  GamePawn,
+  DraftSlot,
+  SelectedDomino,
+  DiscardedDomino,
+  InitialDraftPhase,
+  TurnPhase,
+  FinishedPhase,
+  GamePhase,
+  GameState,
+  CreateGameOptions,
+  GameAction,
+} from "./domain/game.js";
+
 export type {
   Direction,
   DominoPlacement,
