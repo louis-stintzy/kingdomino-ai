@@ -5,6 +5,8 @@ import type {
   Terrain,
 } from '@kingdomino/game-core'
 
+export const VIEWPORT_RADIUS = 6
+
 export const TERRAIN_LABELS: Readonly<Record<Terrain, string>> = {
   wheat: 'Blé',
   forest: 'Forêt',

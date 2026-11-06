@@ -112,7 +112,7 @@ function App() {
         <div className="board-column">
           <div className="board-heading">
             <div>
-              <p className="section-kicker">Viewport −5 à +5</p>
+              <p className="section-kicker">Viewport −6 à +6</p>
               <h2>Votre royaume</h2>
             </div>
             <button

@@ -4,20 +4,25 @@ import {
   type Kingdom,
   type Position,
 } from '@kingdomino/game-core'
-import { createViewportPositions, positionKey } from '../board-utils'
+import {
+  createViewportPositions,
+  positionKey,
+  VIEWPORT_RADIUS,
+} from '../board-utils'
 import { KingdomCell } from './KingdomCell'
 
-const VIEWPORT_POSITIONS = createViewportPositions(5)
+const VIEWPORT_POSITIONS = createViewportPositions(VIEWPORT_RADIUS)
 
 interface KingdomBoardProps {
   readonly kingdom: Kingdom
-  readonly domino: DominoDefinition
-  readonly previewPositions: readonly [Position, Position] | null
-  readonly previewValid: boolean | null
-  readonly legalPlacementKeys: ReadonlySet<string>
-  readonly onCellEnter: (position: Position) => void
-  readonly onCellLeave: () => void
-  readonly onCellClick: (position: Position) => void
+  readonly domino?: DominoDefinition
+  readonly previewPositions?: readonly [Position, Position] | null
+  readonly previewValid?: boolean | null
+  readonly legalPlacementKeys?: ReadonlySet<string>
+  readonly interactive?: boolean
+  readonly onCellEnter?: (position: Position) => void
+  readonly onCellLeave?: () => void
+  readonly onCellClick?: (position: Position) => void
 }
 
 export function KingdomBoard({
@@ -25,24 +30,29 @@ export function KingdomBoard({
   domino,
   previewPositions,
   previewValid,
-  legalPlacementKeys,
+  legalPlacementKeys = new Set(),
+  interactive = true,
   onCellEnter,
   onCellLeave,
   onCellClick,
 }: KingdomBoardProps) {
   return (
-    <div className="board-scroll" tabIndex={0} aria-label="Plateau du royaume">
+    <div
+      className="board-scroll"
+      tabIndex={interactive ? 0 : undefined}
+      aria-label={`Plateau du royaume${interactive ? '' : ' en lecture seule'}`}
+    >
       <div className="kingdom-board">
         {VIEWPORT_POSITIONS.map((position) => {
           const placedCell = getCellAt(kingdom, position)?.cell
           const isCastle =
             position.x === kingdom.castle.x && position.y === kingdom.castle.y
-          const previewIndex = previewPositions?.findIndex(
+          const previewIndex = interactive && previewPositions?.findIndex(
             (candidate) =>
               candidate.x === position.x && candidate.y === position.y,
           )
           const previewTile =
-            previewIndex === 0 || previewIndex === 1
+            domino && (previewIndex === 0 || previewIndex === 1)
               ? domino.tiles[previewIndex]
               : undefined
 
@@ -53,11 +63,14 @@ export function KingdomBoard({
               cell={placedCell}
               isCastle={isCastle}
               previewTile={previewTile}
-              previewValid={previewValid}
-              isLegalAnchor={legalPlacementKeys.has(positionKey(position))}
-              onEnter={() => onCellEnter(position)}
-              onLeave={onCellLeave}
-              onClick={() => onCellClick(position)}
+              previewValid={previewValid ?? null}
+              isLegalAnchor={
+                interactive && legalPlacementKeys.has(positionKey(position))
+              }
+              interactive={interactive}
+              onEnter={() => onCellEnter?.(position)}
+              onLeave={() => onCellLeave?.()}
+              onClick={() => onCellClick?.(position)}
             />
           )
         })}

@@ -21,6 +21,7 @@ interface KingdomCellProps {
   readonly previewTile?: TileDefinition
   readonly previewValid: boolean | null
   readonly isLegalAnchor: boolean
+  readonly interactive: boolean
   readonly onEnter: () => void
   readonly onLeave: () => void
   readonly onClick: () => void
@@ -33,6 +34,7 @@ export function KingdomCell({
   previewTile,
   previewValid,
   isLegalAnchor,
+  interactive,
   onEnter,
   onLeave,
   onClick,
@@ -59,13 +61,14 @@ export function KingdomCell({
     <button
       className={classes}
       type="button"
+      disabled={!interactive}
       aria-label={`Case (${position.x}, ${position.y}) : ${contentLabel}`}
       title={`(${position.x}, ${position.y}) · ${contentLabel}`}
-      onPointerEnter={onEnter}
-      onPointerLeave={onLeave}
-      onFocus={onEnter}
-      onBlur={onLeave}
-      onClick={onClick}
+      onPointerEnter={interactive ? onEnter : undefined}
+      onPointerLeave={interactive ? onLeave : undefined}
+      onFocus={interactive ? onEnter : undefined}
+      onBlur={interactive ? onLeave : undefined}
+      onClick={interactive ? onClick : undefined}
     >
       {isCastle ? (
         <span className="castle-icon" aria-hidden="true">♜</span>

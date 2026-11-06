@@ -3,6 +3,7 @@ import {
   createViewportPositions,
   formatPlacementError,
   placementKey,
+  VIEWPORT_RADIUS,
 } from './board-utils'
 
 describe('board utilities', () => {
@@ -13,6 +14,19 @@ describe('board utilities', () => {
     expect(positions[0]).toEqual({ x: -1, y: -1 })
     expect(positions[4]).toEqual({ x: 0, y: 0 })
     expect(positions[8]).toEqual({ x: 1, y: 1 })
+  })
+
+  it('covers the complete 13 by 13 viewport from -6 to +6', () => {
+    const positions = createViewportPositions(VIEWPORT_RADIUS)
+    const xs = positions.map(({ x }) => x)
+    const ys = positions.map(({ y }) => y)
+
+    expect(positions).toHaveLength(169)
+    expect(Math.min(...xs)).toBe(-6)
+    expect(Math.max(...xs)).toBe(6)
+    expect(Math.min(...ys)).toBe(-6)
+    expect(Math.max(...ys)).toBe(6)
+    expect(new Set(positions.map(({ x, y }) => `${x}:${y}`)).size).toBe(169)
   })
 
   it('creates a stable key for an oriented anchor', () => {

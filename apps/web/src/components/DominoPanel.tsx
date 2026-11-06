@@ -25,7 +25,12 @@ function DominoTile({ tile }: { readonly tile: TileDefinition }) {
   return (
     <div className={`domino-tile terrain terrain--${tile.terrain}`}>
       <strong>{TERRAIN_LABELS[tile.terrain]}</strong>
-      <span>{tile.crowns > 0 ? '♛'.repeat(tile.crowns) : 'Sans couronne'}</span>
+      <span
+        className={`domino-crowns${tile.crowns === 0 ? ' domino-crowns--empty' : ''}`}
+        aria-label={`${tile.crowns} couronne${tile.crowns > 1 ? 's' : ''}`}
+      >
+        {tile.crowns > 0 ? '♛'.repeat(tile.crowns) : 'Aucune couronne'}
+      </span>
     </div>
   )
 }
